@@ -19,6 +19,16 @@ def int_to_bytes(value):
         raise ValueError("Value must be an integer.")
 
 
+def is_address_ok(address):
+    val = int_to_bytes(address)
+    if len(val) == 2:
+        if val[0] in '0123456789abcdefABCDEF' and val[1] in '0123456789abcdefABCDEF':
+            return True
+    else:
+        return False
+
+
+
 class FPGA_UART:
     def __init__(self, port, baud_rate=115200, timeout=1):
         """
@@ -54,6 +64,7 @@ class FPGA_UART:
         """Send a command to set the memory address in bytestring format."""
         if isinstance(address, int):
             self.serial_conn.write(b'A' + int_to_bytes(address))
+            print("Address set to:", address)
         else:
             print("Invalid address: Must be an integer.")
 
@@ -61,12 +72,14 @@ class FPGA_UART:
         """Write a value to the memory in bytestring format."""
         if isinstance(value, int):
             self.serial_conn.write(b'W' + int_to_bytes(value))
+            print("Value written to memory:", value)
         else:
             print("Invalid value: Must be an integer.")
 
     def display_mem_vals_leds(self):
         """Send a command to display memory values on LEDs"""
         self.serial_conn.write(b'G')
+        print("Memory values displayed, GO !")
 
     def read_mem_val(self):
         """Read a value from memory and return as a bytestring."""

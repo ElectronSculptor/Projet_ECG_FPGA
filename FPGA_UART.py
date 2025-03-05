@@ -32,7 +32,7 @@ def int_to_bytes(value):
             hex_str = f'{value:02x}'
             return bytes(hex_str, 'utf-8')
         else:
-            raise ValueError("Value must be an integer between 0 and 0xFF.")
+            raise ValueError("Input format error : must be an integer between 0 and 0xFF.")
     else:
         raise ValueError("Value must be an integer.")
 

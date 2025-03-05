@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     fpga.open_instrument()
     fpga.set_memory_addr(00)
-    fpga.write_val_mem(0x0A)
+    fpga.write_val_mem(0xFA)
     fpga.display_mem_vals_leds()
     
     mem_val = fpga.read_mem_val()

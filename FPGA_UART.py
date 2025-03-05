@@ -53,14 +53,14 @@ class FPGA_UART:
     def set_memory_addr(self, address):
         """Send a command to set the memory address in bytestring format."""
         if isinstance(address, int):
-            self.serial_conn.write(b'W' + int_to_bytes(address))
+            self.serial_conn.write(b'A' + int_to_bytes(address))
         else:
             print("Invalid address: Must be an integer.")
 
     def write_val_mem(self, value):
         """Write a value to the memory in bytestring format."""
         if isinstance(value, int):
-            self.serial_conn.write(bytes([value]))
+            self.serial_conn.write(b'W' + int_to_bytes(value))
         else:
             print("Invalid value: Must be an integer.")
 

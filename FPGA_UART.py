@@ -3,30 +3,38 @@
 # We gonna try to automatize that and add a class
 
 import serial
-
+"""
 def int_to_bytes(value):
-    """
+    
     Transform an integer into a bytestring.
     Example: int_to_bytes(10) -> b'10'
-    Example: int_to_bytes(2552256) -> b'2552256'
     :param value: Integer value
     :return: Bytestring
 
-    """
+    
     if isinstance(value, int):
         return bytes(f'{value:02}', 'utf-8')
     else:
         raise ValueError("Value must be an integer.")
 
+"""
 
-def is_address_ok(address):
-    val = int_to_bytes(address)
-    if len(val) == 2:
-        if val[0] in '0123456789abcdefABCDEF' and val[1] in '0123456789abcdefABCDEF':
-            return True
+def int_to_bytes(value):
+    """
+    Transform an integer into a bytestring.
+    Example: int_to_bytes(10) -> b'0a'
+    Example: int_to_bytes(255) -> b'ff'
+    :param value: Integer value
+    :return: Bytestring
+    """
+    if isinstance(value, int):
+        if 0 <= value <= 0xFF:
+            hex_str = f'{value:02x}'
+            return bytes(hex_str, 'utf-8')
+        else:
+            raise ValueError("Value must be an integer between 0 and 0xFF.")
     else:
-        return False
-
+        raise ValueError("Value must be an integer.")
 
 
 class FPGA_UART:

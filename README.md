@@ -1,2 +1,2 @@
-# Projet_ECG_FPGA
-ECG Data acquisition and transfert with UART, Data crypted by ASCON. Xilinx Pynq-z2 FPGA
+# FPGA_Securise
+Repo du projet de 2A FPGA sécurisé

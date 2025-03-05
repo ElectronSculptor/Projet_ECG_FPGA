@@ -2,16 +2,28 @@
 # UART COMMUNICATION BETWEEN PC AND FPGA BOARD
 # We gonna try to automatize that and add a class
 
-
-
 import serial
+
+def int_to_bytes(value):
+    """
+    Transform an integer into a bytestring.
+    Example: int_to_bytes(10) -> b'10'
+    Example: int_to_bytes(2552256) -> b'2552256'
+    :param value: Integer value
+    :return: Bytestring
+
+    """
+    if isinstance(value, int):
+        return bytes(f'{value:02}', 'utf-8')
+    else:
+        raise ValueError("Value must be an integer.")
 
 
 class FPGA_UART:
     def __init__(self, port, baud_rate=115200, timeout=1):
         """
         Initialize the UART connection.
-        :param port: Serial port name (e.g., 'COM3' on Windows, '/dev/ttyUSB0' on Linux)
+        :param port: Serial port name (e.g., 'COM3' on Windows))
         :param baud_rate: Communication speed
         :param timeout: Read timeout
         """
@@ -34,10 +46,14 @@ class FPGA_UART:
             self.serial_conn.close()
             print("UART connection closed.")
 
+
+    
+    
+    
     def set_memory_addr(self, address):
         """Send a command to set the memory address in bytestring format."""
         if isinstance(address, int):
-            self.serial_conn.write(bytes([address]))
+            self.serial_conn.write(b'W' + int_to_bytes(address))
         else:
             print("Invalid address: Must be an integer.")
 
@@ -48,12 +64,9 @@ class FPGA_UART:
         else:
             print("Invalid value: Must be an integer.")
 
-    def display_mem_vals_leds(self, value):
-        """Send a command to display memory values on LEDs in bytestring format."""
-        if isinstance(value, int):
-            self.serial_conn.write(bytes([value]))
-        else:
-            print("Invalid value: Must be an integer.")
+    def display_mem_vals_leds(self):
+        """Send a command to display memory values on LEDs"""
+        self.serial_conn.write(b'G')
 
     def read_mem_val(self):
         """Read a value from memory and return as a bytestring."""

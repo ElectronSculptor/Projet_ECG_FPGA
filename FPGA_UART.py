@@ -70,6 +70,6 @@ class FPGA_UART:
 
     def read_mem_val(self):
         """Read a value from memory and return as a bytestring."""
-        self.serial_conn.write(b"\x01")  # Example read command as a single byte
+        self.serial_conn.write(b'R')  # Example read command as a single byte
         response = self.serial_conn.read(1)  # Read single byte
         return response

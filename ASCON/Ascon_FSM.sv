@@ -72,11 +72,13 @@ module ascon_tb();
         init,
         wait_end_initialisation,
         wait_end_associate,
+        // Les etats dans la boucle for du tb 
         pt_set_data,
         wait_cipher_valid,
         pt_get_cipher,
         pt_wait_end_cipher,
-        wait_cipher_valid,
+
+        finalisation,
         wait_end_tag,
         get_tag,
     } State_t;
@@ -86,7 +88,7 @@ module ascon_tb();
 
     always_ff @(posedge clock_s, negedge reset_s) begin
     if (reset_s == 1'b0) begin
-      Ep <= idle;
+      Ep <= reset;
         end else begin
         Ep <= Ef;
         end
@@ -96,11 +98,75 @@ module ascon_tb();
 
     always_comb begin
     case (Ep)
-      idle:
+        reset:
+          reset_s             = 1'b1;
+          init_s              = 1'b0;
+          associate_data_s    = 1'b0; //0: plain text; 1: DA
+          finalisation_s      = 1'b0;
+          data_s              = 64'h0;
+          data_valid_s        = 1'b0;
+          Ef = init;
+
+        init:
+          reset_s             = 1'b0;
+          init_s              = 1'b1;
+          associate_data_s    = 1'b0; //0: plain text; 1: DA
+          finalisation_s      = 1'b0;
+          data_s              = 64'h0;
+          data_valid_s        = 1'b0;
+          Ef = wait_end_initialisation;
+
+        wait_end_initialisation:
+          reset_s             = 1'b0;
+          init_s              = 1'b1;
+          associate_data_s    = 1'b0; //0: plain text; 1: DA
+          finalisation_s      = 1'b0;
+          data_s              = 64'h0;
+          data_valid_s        = 1'b0;
+          wait(end_initialisation_s == 1'b1);
+          Ef = wait_end_associate;
+
+        wait_end_associate:
+          reset_s             = 1'b0;
+          init_s              = 1'b0;
+          associate_data_s    = 1'b1; //0: plain text; 1: DA
+          finalisation_s      = 1'b0;
+          data_s              = 64'h41_20_74_6F_20_42_80_00;
+          data_valid_s        = 1'b1;
+          wait(end_associate_s == 1'b1);
+          Ef = pt_set_data;
+
+        pt_set_data:
+        wait_cipher_valid:
+        pt_get_cipher:
+        pt_wait_end_cipher:
 
 
+        finalisation:
+          reset_s             = 1'b0;
+          init_s              = 1'b0;
+          associate_data_s    = 1'b0; //0: plain text; 1: DA
+          finalisation_s      = 1'b1;
+          data_s              = data_i_s[63:0];//{data_i_s[39:0], 1'b1, 23'h0};
+          data_valid_s        = 1'b1;
+          wait(cipher_valid_s == 1'b1);
+          Ef 
 
-      default: Ef = idle;
+
+        wait_end_tag:
+          reset_s             = 1'b0;
+          init_s              = 1'b0;
+          associate_data_s    = 1'b0; //0: plain text; 1: DA
+          finalisation_s      = 1'b1;
+          data_s              = data_i_s[63:0];
+          data_valid_s        = 1'b1;
+          wait(end_tag_s == 1'b1);
+          Ef = get_tag;
+
+        get_tag:
+          $display("tag = %h", tag_s);
+
+      default: Ef = reset;
     endcase
   end
 

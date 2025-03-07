@@ -144,7 +144,7 @@ module ascon_tb();
 		end
 
 
-        // wait_cipher_valid
+        // finalisation
         reset_s             = 1'b0;
         init_s              = 1'b0;
         associate_data_s    = 1'b0; //0: plain text; 1: DA
@@ -153,7 +153,7 @@ module ascon_tb();
         data_valid_s        = 1'b1;
         wait(cipher_valid_s == 1'b1);
 
-        // pt_get_cipher
+        // pt_get_final_cipher
         $display("cipher[23] = %h", cipher_s);
         #10;
 

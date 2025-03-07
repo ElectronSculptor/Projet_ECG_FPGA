@@ -18,7 +18,7 @@
 // nonce_s             = 128'h0;
 
 module ascon_tb();
-    // inputs
+    // inputs   
     logic         clock_s;
     logic         reset_s;
     logic         init_s;

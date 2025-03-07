@@ -11,8 +11,8 @@ import ascon_pack::*;
 // We're gonna implement a FSM to control the ASCON module
 
 
-module ascon_tb();
-    // inputs
+module ascon_FSM();
+    // inputs du ascon
     logic         clock_s;
     logic         reset_s;
     logic         init_s;
@@ -22,7 +22,7 @@ module ascon_tb();
     logic         data_valid_s;
     logic [127:0] key_s;
     logic [127:0] nonce_s;
-    // outputs
+    // outputs du ascon
     logic         end_associate_s;
     logic [ 63:0] cipher_s;
     logic         cipher_valid_s;
@@ -30,6 +30,9 @@ module ascon_tb();
     logic         end_tag_s;
     logic         end_initialisation_s;
     logic         end_cipher_s;
+
+    logic [4:0] mux_ctrl_s;
+    logic [63:0] mux_data_s;
 
     // other signals
     logic [1447:0] data_i_s;
@@ -39,31 +42,25 @@ module ascon_tb();
 
 
     // Signal Wiring
-   ascon DUT (
+    ascon DUT (
 				.clock_i(clock_s),
 				.reset_i(reset_s),
 				.init_i(init_s),
-                .associate_data_i(associate_data_s), //0: plain text; 1: DA
-                .finalisation_i(finalisation_s),
-                .data_i(data_s),
-                .data_valid_i(data_valid_s),
-                .key_i(key_s),
-                .nonce_i(nonce_s),
-                .end_associate_o(end_associate_s),
-                .cipher_o(cipher_s),
-                .cipher_valid_o(cipher_valid_s),
-                .tag_o(tag_s),
-                .end_tag_o(end_tag_s),
-                .end_initialisation_o(end_initialisation_s),
-                .end_cipher_o(end_cipher_s)
+        .associate_data_i(associate_data_s), //0: plain text; 1: DA
+        .finalisation_i(finalisation_s),
+        .data_i(data_s),
+        .data_valid_i(data_valid_s),
+        .key_i(key_s),
+        .nonce_i(nonce_s),
+        .end_associate_o(end_associate_s),
+        .cipher_o(cipher_s),
+        .cipher_valid_o(cipher_valid_s),
+        .tag_o(tag_s),
+        .end_tag_o(end_tag_s),
+        .end_initialisation_o(end_initialisation_s),
+        .end_cipher_o(end_cipher_s)
     );
 
-
-    // Clock generation
-    always  begin
-       #10;
-       assign  clock_s = ~clock_s;  
-    end
 
 
     // Enumeration for the state machine
@@ -79,12 +76,13 @@ module ascon_tb();
         pt_wait_end_cipher,
 
         finalisation,
+        pt_get_final_cipher,
         wait_end_tag,
         get_tag,
     } State_t;
 
     // Previous and current state
-    State_t Ep, Ef
+    State_t Ep, Ef;
 
     always_ff @(posedge clock_s, negedge reset_s) begin
     if (reset_s == 1'b0) begin
@@ -136,10 +134,58 @@ module ascon_tb();
           wait(end_associate_s == 1'b1);
           Ef = pt_set_data;
 
-        pt_set_data:
-        wait_cipher_valid:
-        pt_get_cipher:
-        pt_wait_end_cipher:
+
+        
+          pt_set_data: begin
+              reset_s             = 1'b0;
+              init_s              = 1'b0;
+              associate_data_s    = 1'b0; //0: plain text; 1: DA
+              finalisation_s      = 1'b0;
+              data_s              = data_i_s[mux_ctrl_s*64 +: 64];
+              data_valid_s        = 1'b1;
+              Ef = wait_cipher_valid;
+          end
+
+          wait_cipher_valid: begin
+              reset_s             = 1'b0;
+              init_s              = 1'b0;
+              associate_data_s    = 1'b0; //0: plain text; 1: DA
+              finalisation_s      = 1'b0;
+              data_s              = data_i_s[mux_ctrl_s*64 +: 64];
+              data_valid_s        = 1'b1;
+              if (cipher_valid_s == 1'b1) begin
+                  Ef = pt_get_cipher;
+              end
+          end
+
+          pt_get_cipher: begin
+              reset_s             = 1'b0;
+              init_s              = 1'b0;
+              associate_data_s    = 1'b0; //0: plain text; 1: DA
+              finalisation_s      = 1'b0;
+              data_s              = data_i_s[mux_ctrl_s*64 +: 64];
+              data_valid_s        = 1'b1;
+              $display("cipher[%0d] = %h", mux_ctrl_s, cipher_s);
+              Ef = pt_wait_end_cipher;
+          end
+
+          pt_wait_end_cipher: begin
+              reset_s             = 1'b0;
+              init_s              = 1'b0;
+              associate_data_s    = 1'b0; //0: plain text; 1: DA
+              finalisation_s      = 1'b0;
+              data_s              = data_i_s[mux_ctrl_s*64 +: 64];
+              data_valid_s        = 1'b1;
+              if (end_cipher_s == 1'b1) begin
+                  if (mux_ctrl_s < 22) begin
+                      mux_ctrl_s = mux_ctrl_s + 1;
+                      Ef = pt_set_data;
+                  end else begin
+                      Ef = finalisation;
+                  end
+              end
+          end
+
 
 
         finalisation:
@@ -150,8 +196,11 @@ module ascon_tb();
           data_s              = data_i_s[63:0];//{data_i_s[39:0], 1'b1, 23'h0};
           data_valid_s        = 1'b1;
           wait(cipher_valid_s == 1'b1);
-          Ef 
+          Ef = pt_get_final_cipher;
 
+        pt_get_final_cipher:
+          $display("cipher[23] = %h", cipher_s);
+          Ef = wait_end_tag;
 
         wait_end_tag:
           reset_s             = 1'b0;
@@ -165,6 +214,7 @@ module ascon_tb();
 
         get_tag:
           $display("tag = %h", tag_s);
+          Ef = reset;
 
       default: Ef = reset;
     endcase
@@ -172,4 +222,4 @@ module ascon_tb();
 
 
 
-endmodule: ascon_tb
+endmodule: ascon_FSM

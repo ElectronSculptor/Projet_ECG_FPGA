@@ -119,7 +119,7 @@ module ascon_tb();
             data_s              = data_i_s[1472 - 64*i +: 64];
             data_valid_s        = 1'b1;
             #10;
-
+            
             // wait_cipher_valid
             reset_s             = 1'b0;
             init_s              = 1'b0;

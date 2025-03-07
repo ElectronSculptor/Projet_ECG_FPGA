@@ -8,6 +8,9 @@
 import ascon_pack::*;
 
 
+// We're gonna implement a FSM to control the ASCON module
+
+
 module ascon_tb();
     // inputs
     logic         clock_s;
@@ -65,10 +68,17 @@ module ascon_tb();
 
     // Enumeration for the state machine
     typedef enum {
-        idle,
-        initialisation,
-        associate_data,
-        finalisation
+        reset,
+        init,
+        wait_end_initialisation,
+        wait_end_associate,
+        pt_set_data,
+        wait_cipher_valid,
+        pt_get_cipher,
+        pt_wait_end_cipher,
+        wait_cipher_valid,
+        wait_end_tag,
+        get_tag,
     } State_t;
 
     // Previous and current state

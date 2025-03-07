@@ -4,18 +4,6 @@
 // Engineer: Antoine Chassaigne
 // 
 // Create Date: 03.03.2025 15:43:36
-// Design Name: 
-// Module Name: ascon_tb
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision: 1.0
-// Revision 0.01 - File Created
-// Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -170,7 +158,7 @@ module ascon_tb();
         init_s              = 1'b0;
         associate_data_s    = 1'b0; //0: plain text; 1: DA
         finalisation_s      = 1'b1;
-        data_s              = {data_i_s[39:0], 1'b1, 23'h0};
+        data_s              = {data_i_s[39:0], 1'b1, 23'h0}; // Padding
         data_valid_s        = 1'b1;
         wait(cipher_valid_s == 1'b1);
 

@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 
-module inter_spartan
+module top_level
+
   import uart_pkg::*;
 (
     input  logic       clock_i,  //main clock
@@ -143,4 +144,4 @@ module inter_spartan
       .wave_o  (wave_to_send_s)   //wave_o_s
   );
 
-endmodule : inter_spartan
+endmodule : top_level

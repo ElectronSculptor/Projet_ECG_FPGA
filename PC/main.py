@@ -1,5 +1,5 @@
 from FPGA_UART import *
-from Check_if import *
+from PC.Check_if import *
 
 
 if __name__ == "__main__":

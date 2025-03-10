@@ -94,43 +94,55 @@ module top_level
 
   //instance de ascon
   
+  ascon ascon_0 (
+      .clock_i(clock_s),
+      .resetb_i(resetb_s),
+      .start_i(start_ascon_s),
+      .key_i(key_s),
+      .nonce_i(nonce_s),
+      .data_i(data_s),
+      .cipher_o(cipher_s),
+      .cipher_valid_o(cipher_valid_s),
+      .tag_o(tag_s),
+      .end_tag_o(end_tag_s),
+      .end_initialisation_o(end_initialisation_s),
+      .end_cipher_o(end_cipher_s),
+      .init_o(init_cpt_mux_s),
+      .associate_data_o(associate_data_s),
+      .finalisation_o(finalisation_s),
+      .data_valid_o(data_valid_s),
+      .end_associate_o(end_associate_s)
+  );
+
+  //instanciate drive ascon here
   
-//instanciate drive ascon here
+  fsm_ascon fsm_ascon_0 (
+      .clock_i(clock_s),
+      .reset_i(resetb_s),
+      .start_i(start_ascon_s),
+      .data_i(wave_received_s),
+      .end_associate_i(end_associate_s),
+      .cipher_i(cipher_s),
+      .cipher_valid_i(cipher_valid_s),
+      .tag_i(tag_s),
+      .end_tag_i(end_tag_s),
+      .end_initialisation_i(end_initialisation_s),
+      .end_cipher_i(end_cipher_s),
+      .init_o(init_cpt_mux_s),
+      .associate_data_o(associate_data_s),
+      .finalisation_o(finalisation_s),
+      .data_o(data_s),
+      .data_valid_o(data_valid_s),
+      .key_o(key_s),
+      .nonce_o(nonce_s)
+  );
   
 
   //counter to select the correct word from wavereceived and drive it to data_s
- 
- 
- //wave_s concatenate ad and wave received
-  assign wave_s[0]  = ad_s;
-  assign wave_s[1]  = wave_received_s[1471:1408];
-  assign wave_s[2]  = wave_received_s[1407:1344];
-  assign wave_s[3]  = wave_received_s[1343:1280];
-  assign wave_s[4]  = wave_received_s[1279:1216];
-  assign wave_s[5]  = wave_received_s[1215:1152];
-  assign wave_s[6]  = wave_received_s[1151:1088];
-  assign wave_s[7]  = wave_received_s[1087:1024];
-  assign wave_s[8]  = wave_received_s[1023:960];
-  assign wave_s[9]  = wave_received_s[959:896];
-  assign wave_s[10] = wave_received_s[895:832];
-  assign wave_s[11] = wave_received_s[831:768];
-  assign wave_s[12] = wave_received_s[767:704];
-  assign wave_s[13] = wave_received_s[703:640];
-  assign wave_s[14] = wave_received_s[639:576];
-  assign wave_s[15] = wave_received_s[575:512];
-  assign wave_s[16] = wave_received_s[511:448];
-  assign wave_s[17] = wave_received_s[447:384];
-  assign wave_s[18] = wave_received_s[383:320];
-  assign wave_s[19] = wave_received_s[319:256];
-  assign wave_s[20] = wave_received_s[255:192];
-  assign wave_s[21] = wave_received_s[191:128];
-  assign wave_s[22] = wave_received_s[127:64];
-  assign wave_s[23] = wave_received_s[63:0];
 
-  
-//  
+
   assign data_s     = wave_s[cpt_s];
-
+  assign en_reg_ascon_s = cipher_valid_s;
 //register to store cipher result 8 bytes
   ascon_reg u_ascon_reg (
       .clock_i (clock_s),

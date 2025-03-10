@@ -80,17 +80,36 @@ module fsm_uart
     get_nonce0,
     get_nonce1,
     flush_nonce,
-    //add states to parse associate data 
-    
-    //add states to parse ecg wave
-    
+
+    //states to parse associate data 
+    init_ad,  //Associaite data
+    idle_ad0,
+    idle_ad1,
+    get_ad0,
+    get_ad1,
+    flush_ad,
+    //states to parse ecg wave
+    init_ecg,  // ECG Wave
+    idle_ecg0,
+    idle_ecg1,
+    get_ecg0,
+    get_ecg1,
+    flush_ecg,
+
     //start ascon cipher GO 
     start_ascon,
     wait_end_ascon,
-    //send the cipher result all the cipher wave
+
+    //add states to send the cipher result all the cipher wave
     
-    //send the tag
-    
+    start_cipher,
+    send_cipher,
+
+    //add states to send the tag
+    start_tag,
+    send_tag,
+
+
     starto,  //letter O
     sendo,
     startk,  //letter K
@@ -121,6 +140,9 @@ module fsm_uart
   );
 
 //add register to store associated data 
+
+logic [7:0] cipher_reg_s;
+logic [7:0] tag_reg_s;
 
 //add register to stare the plain ECG wave
 

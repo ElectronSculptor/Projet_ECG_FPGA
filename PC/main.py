@@ -4,6 +4,12 @@ from ascon_pcsn import *
 import csv
 import matplotlib.pyplot as plt
 
+# Load NeuroKit and other useful packages
+import neurokit2 as nk
+import numpy as np
+import pandas as pd
+
+
 # We have 181 points in each waveform
 number_of_points = 181
 X_axis = [k for k in range(0, number_of_points)]
@@ -83,25 +89,40 @@ if __name__ == "__main__":
     curves_int , curves_str = load_curves("waveform_example_ecg.csv")
     #print(curves)
 
-    for i in range(10):
+    for i in range(3):
         
         plaintext= bytes.fromhex(curves_str[i][0])
-        
+
         # On a ici le cipher et le tag qui est sur les 16 derniers bits
         Cipher = ascon_encrypt(key, nonce, associateddata, plaintext, variant="Ascon-128")
         decrypted_plaintext = ascon_decrypt(key, nonce, associateddata, Cipher, variant="Ascon-128")
 
         decrypted_plaintext_decimal = convert_hex_to_decimal(decrypted_plaintext.hex())
         
-        demo_print([("Cipher", Cipher), ("Plaintext", decrypted_plaintext)])
+        #demo_print([("Cipher", Cipher), ("Plaintext", decrypted_plaintext)])
 
-        plt.plot(X_axis,curves_int[i], label=f'Waveform {i+1}')
-        plt.plot(X_axis,decrypted_plaintext_decimal, label=f'Waveform decrypted{i+1}')
-        plt.xlabel('Sample')
-        plt.ylabel('Amplitude')
-        plt.title('ECG Waveforms')
-        plt.legend()
+        # plt.plot(X_axis,curves_int[i], label=f'Waveform {i+1}')
+        # plt.plot(X_axis,decrypted_plaintext_decimal, label=f'Waveform decrypted{i+1}')
+        # plt.xlabel('Sample')
+        # plt.ylabel('Amplitude')
+        # plt.title('ECG Waveforms')
+        # plt.legend()
+        
+
+
+        ecg = nk.ecg_simulate(duration=10, noise=0.01, heart_rate=70)
+        print(ecg) #numpy.ndarray
+        decrypted_plaintext_array = np.array(decrypted_plaintext_decimal)
+
+
+        # Extract R-peaks locations
+        _, rpeaks = nk.ecg_peaks(decrypted_plaintext_array, sampling_rate=181)
+        # Visualize R-peaks in ECG signal
+        plot = nk.events_plot(rpeaks['ECG_R_Peaks'], decrypted_plaintext_array)
         plt.show()
+
+        # Delineate the ECG signal and visualizing all peaks of ECG complexes
+        #_, waves_peak = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=1000, method="peak", show=True, show_type='peaks')
 
 
 

@@ -445,6 +445,6 @@ def demo_hash(variant="Ascon-Hash", hashlength=32):
     demo_print([("message", message), ("tag", tag)])
 
 
-if __name__ == "__main__":
-    demo_aead("Ascon-128")
-    demo_hash("Ascon-Hash")
+# if __name__ == "__main__":
+#     demo_aead("Ascon-128")
+#     demo_hash("Ascon-Hash")

@@ -1,6 +1,17 @@
 from FPGA_UART import *
 from Check_if import *
 from ascon_pcsn import *
+import csv
+
+
+def load_curves(file_name):
+    Curves_List = []
+    with open(file_name, mode='r') as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            Curves_List.append(row)
+    return Curves_List
+
 
 
 if __name__ == "__main__":
@@ -19,9 +30,12 @@ if __name__ == "__main__":
     # fpga.close_instrument()
 
     # ------------------DEMO SANS LE FPGA------------------------
+    # (TESTE ET CA MARCHE BIEN)
     # demo_aead("Ascon-128")
     # demo_hash("Ascon-Hash")
 
 
     # ------------------ON CHARGE LES COURBES .CSV---------------
+    # (TESTE ET CA MARCHE BIEN)
     curves = load_curves("waveform_example_ecg.csv")
+    print(curves)

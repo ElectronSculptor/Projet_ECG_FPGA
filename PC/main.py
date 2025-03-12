@@ -3,14 +3,35 @@ from Check_if import *
 from ascon_pcsn import *
 import csv
 
+import matplotlib.pyplot as plt
 
-def load_curves(file_name):
-    Curves_List = []
-    with open(file_name, mode='r') as file:
+# We have 181 points in each waveform
+number_of_points = 181
+X_axis = [k for k in range(0, number_of_points)]
+
+
+def load_curves(file_path):
+    curves = []
+    with open(file_path, mode='r') as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
-            Curves_List.append(row)
-    return Curves_List
+            curve = []
+            for value in row:
+                # Split the hex string into pairs of characters and convert to decimal
+                curve.extend([int(value[i:i+2], 16) for i in range(0, len(value), 2)])
+            curves.append(curve)
+    return curves
+
+
+
+def plot_curves(curves):
+    for i, curve in enumerate(curves):
+        plt.plot(curve, label=f'Waveform {i+1}')
+    plt.xlabel('Sample')
+    plt.ylabel('Amplitude')
+    plt.title('ECG Waveforms')
+    plt.legend()
+    plt.show()
 
 
 
@@ -37,5 +58,14 @@ if __name__ == "__main__":
 
     # ------------------ON CHARGE LES COURBES .CSV---------------
     # (TESTE ET CA MARCHE BIEN)
+    
     curves = load_curves("waveform_example_ecg.csv")
-    print(curves)
+    
+    #print(curves)
+
+    plt.plot(X_axis,curves[18], label=f'Waveform {1}')
+    plt.xlabel('Sample')
+    plt.ylabel('Amplitude')
+    plt.title('ECG Waveforms')
+    plt.legend()
+    plt.show()

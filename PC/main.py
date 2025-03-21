@@ -38,10 +38,11 @@ associateddata = '424120746F20428000'
 Go = bytes.fromhex('48')
 
 # Retrieve Data
-# Tag (U=0x55): 128-bit (16 bytes) + OK response.
-U = bytes.fromhex('55')
 # Ciphertext (D=0x44): 181 bytes + 3 bytes of padding + OK response.
 D = bytes.fromhex('44')
+# Tag (U=0x55): 128-bit (16 bytes) + OK response.
+U = bytes.fromhex('55')
+
 
 
 key = bytes.fromhex(key_hexa)

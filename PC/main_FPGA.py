@@ -1,5 +1,4 @@
-from FPGA_UART import *
-from Check_if import *
+from FPGA import *
 from ascon_pcsn import *
 import csv
 import matplotlib.pyplot as plt
@@ -12,6 +11,9 @@ import neurokit2 as nk
 import numpy as np
 import pandas as pd
 
+port = "COM5" 
+baudrate = 115200
+
 
 # We have 181 points in each waveform
 number_of_points = 181
@@ -19,35 +21,33 @@ X_axis = [k for k in range(0, number_of_points)]
 
 
 
-
-
+# Variable globale pour choisir le nombre d'ECGs affichés
+NUM_ECGS_DISPLAYED = 10
+# Variable globale pour choisir le nombre d'ECGs utilisés pour le calcul du BPM
+NUM_ECGS_FOR_BPM = 20
 
 
 # -----      DEFINITION DES COMMADNDES      ------
 
 # ---- Send encryption parameters over UART
 # Key (L=0x4C): 128-bit (16 bytes), on a ajouté 4C au début
-key_hexa='4C8A55114D1CB6A9A2BE263D4D7AECAAFF'
 # Nonce (O=0x4F): 16-byte hexadecimal value, on a ajouté 4F au début
-nonce_hexa='4F4ED0EC0B98C529B7C8CDDF37BCD0284A'
-
 # Associated Data (B=0x42): 8 bytes + padding, on a ajouté 42 au début, et 80 00 a la fin
-associateddata = '424120746F20428000'
-
 # Initiate encryption with the "go" (H=0x48) command.
-Go = bytes.fromhex('48')
-
 # Retrieve Data
 # Ciphertext (D=0x44): 181 bytes + 3 bytes of padding + OK response.
-D = bytes.fromhex('44')
 # Tag (U=0x55): 128-bit (16 bytes) + OK response.
-U = bytes.fromhex('55')
 
 
+KEY     = bytes.fromhex("8A55114D1CB6A9A2BE263D4D7AECAAFF")
+NONCE   = bytes.fromhex("4ED0EC0B98C529B7C8CDDF37BCD0284A")
+DA      = b"A to B"
 
-key = bytes.fromhex(key_hexa)
-nonce = bytes.fromhex(nonce_hexa)
-a_data = bytes.fromhex(associateddata)
+
+FPGA_ACK = b'OK\n'
+GO =    bytes.fromhex('47')
+CIPHER =bytes.fromhex('43')
+TAG =   bytes.fromhex('54')
 
 
 def load_curves(file_path):
@@ -84,70 +84,77 @@ if __name__ == "__main__":
 
 
 
-    port = "COM4"
-    ser = serial.Serial(port, 115200, timeout=1)    
-
-    # On envvoie les données de chiffrement, et on lit les 'ok' du fpga
-    print("Sending Data to FPGA ...")
-    ser.write(key)
-    print("Key : ", ser.read(3))
-    ser.write(nonce)
-    print("Nonce : " , ser.read(3))
-    ser.write(a_data)
-    print("Ass. Data : " , ser.read(3))
-    ser.write(plaintext_a_la_main)
-    print("Plaintext : " , ser.read(3))
-    print("Sending commands to crypt with ASCON ...")
-
-    ser.write(Go)
-    print("Go : ", ser.read(3))
-    sleep(1)
-
-    ser.write(D)
-    tag = ser.read(16)
-    tag_hex = tag.hex()
-    print(tag_hex)
-    print(ser.read(3))
-
-    ser.write(U)
-    cyphertext = ser.read(181+3)
-    cyphertext_hex = cyphertext.hex()
-    print(cyphertext_hex)
-    print(ser.read(3))
-
     
-    ser.close()
-
-
-
-
-
-
 
     # ------------------ANCIEN CODE AVEC LE FPGA ------------------------
     # ----The provided bitstream does not accept lowercase letters.
     # ----All characters must be represented in hexadecimal (e.g., 'B' = 0x42).
 
-    # fpga = FPGA_UART(port="COM4", baud_rate=115200, timeout=1)
-    # fpga.open_instrument()
+    fpga = FPGA(port, baudrate)
+    fpga.open_instrument()
 
-    # fpga.serial_conn.write(key)
+    fpga.send_key(KEY)
+    fpga.send_nonce(NONCE)
+    fpga.send_associated_data(DA)
+    fpga.send_waveform(plaintext_a_la_main)
+    fpga.start_encryption()
+    cipher = fpga.get_cipher()
+    tag = fpga.get_tag()
+    fpga.close_instrument()
+
+
+    # AVEC FPGA_UART
+    # fpga.serial_conn.write(KEY)
     # fpga.serial_conn.read(4)
-    # fpga.serial_conn.write(nonce)
+    # fpga.serial_conn.write(NONCE)
     # fpga.serial_conn.read(4)
-    # fpga.serial_conn.write(a_data)
+    # fpga.serial_conn.write(DA)
     # fpga.serial_conn.read(4)
     # fpga.serial_conn.write(plaintext)
     # fpga.serial_conn.read(4)
 
-    # fpga.serial_conn.write(bytes([Go]))
-    # fpga.serial_conn.write(bytes([U]))
+    # fpga.serial_conn.write(GO)
+    # fpga.serial_conn.write(CIPHER)
     # tag = fpga.serial_conn.read(16)
     # print(tag)
-    # fpga.serial_conn.write(bytes([D]))
+    # fpga.serial_conn.write(TAG)
     # cyphertext = fpga.serial_conn.read(181)
     # print(cyphertext)
+
+
+
+
+
+
+    # ser = serial.Serial(port, 115200, timeout=1)    
+
+    # # On envvoie les données de chiffrement, et on lit les 'ok' du fpga
+    # print("Sending Data to FPGA ...")
+    # ser.write(key)
+    # print("Key : ", ser.read(3))
+    # ser.write(nonce)
+    # print("Nonce : " , ser.read(3))
+    # ser.write(a_data)
+    # print("Ass. Data : " , ser.read(3))
+    # ser.write(plaintext_a_la_main)
+    # print("Plaintext : " , ser.read(3))
+    # print("Sending commands to crypt with ASCON ...")
+
+    # ser.write(Go)
+    # print("Go : ", ser.read(3))
+    # sleep(1)
+
+    # ser.write(D)
+    # tag = ser.read(16)
+    # tag_hex = tag.hex()
+    # print(tag_hex)
+    # print(ser.read(3))
+
+    # ser.write(U)
+    # cyphertext = ser.read(181+3)
+    # cyphertext_hex = cyphertext.hex()
+    # print(cyphertext_hex)
+    # print(ser.read(3))
+
     
-    
-    
-    # fpga.close_instrument()
+    # ser.close()

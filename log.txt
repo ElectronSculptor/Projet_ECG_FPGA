@@ -1,0 +1,23 @@
+2025-03-24 17:37:56.624708 - Error: Could not open the FPGA
+
+2025-03-24 17:38:29.150696 - FPGA opened
+2025-03-24 17:38:29.150836 - Key sent
+2025-03-24 17:38:29.165169 - Nonce sent
+2025-03-24 17:38:29.180955 - Associated data sent
+2025-03-24 17:38:29.202368 - Waveform sent
+2025-03-24 17:38:29.228872 - Encryption started
+2025-03-24 17:38:29.278577 - Cipher received
+2025-03-24 17:38:29.294620 - Tag received
+2025-03-24 17:38:29.420201 - FPGA closed
+
+2025-03-24 17:39:40.874245 - FPGA opened
+2025-03-24 17:39:40.874342 - Key sent
+2025-03-24 17:39:40.889427 - Nonce sent
+2025-03-24 17:39:40.905529 - Associated data sent
+2025-03-24 17:39:40.927055 - Waveform sent
+2025-03-24 17:39:40.953401 - Encryption started
+2025-03-24 17:39:41.002746 - Cipher received
+2025-03-24 17:39:41.018899 - Tag received
+2025-03-24 17:39:41.145112 - FPGA closed
+
+2025-03-24 17:57:11.067352 - FPGA opened

@@ -1,3 +1,9 @@
+# VERSION SANS FPGA
+# VERSION QUI MARCHE, MAIS LES ECG NE SONT PAS PARFAITEMENTS CONCATENES
+
+
+
+
 from FPGA import *
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
@@ -127,7 +133,7 @@ if __name__ == '__main__':
     print("Starting application...")
     fpga = FPGA('COM5', 115200)
     print("FPGA initialized.")
-    waves = fpga.read_csv_file("PC_UI/waveform_example_ecg.csv")
+    waves = fpga.read_csv_file("./PC/waveform_example_ecg.csv")
     print("Waves loaded.")
 
     app = QApplication(sys.argv)

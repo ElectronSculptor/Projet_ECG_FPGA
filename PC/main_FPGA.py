@@ -1,160 +1,161 @@
 from FPGA import *
-from ascon_pcsn import *
-import csv
-import matplotlib.pyplot as plt
-import serial
-from time import sleep
-
-
-# Load NeuroKit and other useful packages
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore
+from collections import deque
 import neurokit2 as nk
 import numpy as np
-import pandas as pd
+from time import sleep
 
-port = "COM5" 
-baudrate = 115200
+KEY =   bytes.fromhex('4B8A55114D1CB6A9A2BE263D4D7AECAAFF')
+NONCE = bytes.fromhex('4E4ED0EC0B98C529B7C8CDDF37BCD0284A')
+DA =    bytes.fromhex('444120746F20428000')
 
-
-# We have 181 points in each waveform
-number_of_points = 181
-X_axis = [k for k in range(0, number_of_points)]
-
-
+W = b'57'
+PADDING = b'800000'
 
 # Variable globale pour choisir le nombre d'ECGs affichés
 NUM_ECGS_DISPLAYED = 10
 # Variable globale pour choisir le nombre d'ECGs utilisés pour le calcul du BPM
 NUM_ECGS_FOR_BPM = 20
 
+class PlotWindow(QMainWindow):
+    def __init__(self, waves, parent=None):
+        super(PlotWindow, self).__init__(parent)
+        self.waves = waves
+        self.initUI()
 
-# -----      DEFINITION DES COMMADNDES      ------
+    def initUI(self):
+        self.setWindowTitle('ECG Plotter')
+        self.setGeometry(0, 0, 1500, 400)
+        
+        self.main_widget = QWidget(self)
+        self.setCentralWidget(self.main_widget)
+        
+        layout = QVBoxLayout(self.main_widget)
+        
+        self.plot_widget = pg.PlotWidget()
+        layout.addWidget(self.plot_widget)
+        
+        self.plot_widget.addLegend()
+        self.plot_widget.showGrid(x=True, y=True)
+        
+        self.curve_decrypted = self.plot_widget.plot(pen='g', name='Decrypted')
+        self.curve_filtered = self.plot_widget.plot(pen='w', name='Filtered')
+        self.curve_peaks = self.plot_widget.plot(pen=None, symbol='o', symbolBrush='r', name='R-peaks')
+        
+        self.ptr_wave = 0
+        self.ptr_sample = 0
+        self.current_wave_decrypted = []
+        
+        # File circulaire assez grande pour NUM_ECGS_DISPLAYED ECGs
+        self.decrypted_data = deque(maxlen=max(NUM_ECGS_DISPLAYED, NUM_ECGS_FOR_BPM) * 2000)
+        self.filtered_data = []
+        self.peaks_x = []
+        self.peaks_y = []
+        
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_plot)
+        self.timer.start(1)  # Affichage fluide
 
-# ---- Send encryption parameters over UART
-# Key (L=0x4C): 128-bit (16 bytes), on a ajouté 4C au début
-# Nonce (O=0x4F): 16-byte hexadecimal value, on a ajouté 4F au début
-# Associated Data (B=0x42): 8 bytes + padding, on a ajouté 42 au début, et 80 00 a la fin
-# Initiate encryption with the "go" (H=0x48) command.
-# Retrieve Data
-# Ciphertext (D=0x44): 181 bytes + 3 bytes of padding + OK response.
-# Tag (U=0x55): 128-bit (16 bytes) + OK response.
+        # Timer BPM
+        self.bpm_timer = QtCore.QTimer()
+        self.bpm_timer.timeout.connect(self.detect_peaks_and_bpm)
+        self.bpm_timer.start(500)
 
-
-KEY     = bytes.fromhex("8A55114D1CB6A9A2BE263D4D7AECAAFF")
-NONCE   = bytes.fromhex("4ED0EC0B98C529B7C8CDDF37BCD0284A")
-DA      = b"A to B"
-
-
-FPGA_ACK = b'OK\n'
-GO =    bytes.fromhex('47')
-CIPHER =bytes.fromhex('43')
-TAG =   bytes.fromhex('54')
-
-
-def load_curves(file_path):
-    # On va charger les données dans 2 listes
-    # Une qui sera en int pour plot avant ascon
-    # Et une qui sera en string pour envoyer a ascon
-    curves_int = []
-    curves_str = []
-    with open(file_path, mode='r') as file:
-        csv_reader = csv.reader(file)
-        for row in csv_reader:
-            curve = []
-            for value in row:
-                # Split the hex string into pairs of characters and convert to decimal
-                curve.extend([int(value[i:i+2], 16) for i in range(0, len(value), 2)])
-            curves_int.append(curve)
-            curves_str.append(row)
-    return curves_int, curves_str
-
-
-def convert_hex_to_decimal(hex_string):
-    return [int(hex_string[i:i+2], 16) for i in range(0, len(hex_string), 2)]
-
-
-
-if __name__ == "__main__":
-
-    curves_int , curves_str = load_curves("./PC/waveform_example_ecg.csv")
-    
-    # ECG waveform (X=0x58): 181 bytes, on a ajouté 58 au début, et 80 00 00 a la fin 
-    plaintext= bytes.fromhex('42'+ curves_str[0][0]+'800000')
-    plaintext_a_la_main = bytes.fromhex('425A5B5B5A5A5A5A5A59554E4A4C4F545553515354565758575A5A595756595B5A5554545252504F4F4C4C4D4D4A49444447474644424341403B36383E4449494747464644434243454745444546474A494745484F58697C92AECEEDFFFFE3B47C471600041729363C3F3E40414141403F3F403F3E3B3A3B3E3D3E3C393C41464646454447464A4C4F4C505555524F5155595C5A595A5C5C5B5959575351504F4F53575A5C5A5B5D5E6060615F605F5E5A5857545252800000')
-    print(plaintext_a_la_main)
-
+    def update_plot(self):
+        if self.ptr_wave < len(self.waves):
+            if self.ptr_sample == 0:
+                # Nouveau bloc -> chiffrement/déchiffrement
+                wave = self.waves[self.ptr_wave] # bytes
+                wave = W + wave + PADDING
+                wave = bytes(wave).decode('utf-8') #str
+                wave = bytes.fromhex(wave)
+                print(wave)
+                
+                fpga.send_waveform(wave)
+                fpga.start_encryption()
+                
+                cipher = fpga.get_cipher()
+                tag = fpga.get_tag()
 
 
-    
+                # wave_encrypted = fpga.encrypt_waveform_python(wave, KEY, NONCE, DA)
+                wave_decrypted = fpga.decrypt_waveform_python(cipher[:-3]+tag, KEY[1:], NONCE[1:], DA[1:-2])
+                self.current_wave_decrypted = fpga.list_from_wave(wave_decrypted.hex())
+            
+            # Ajout d'un échantillon
+            if self.ptr_sample < len(self.current_wave_decrypted):
+                sample = self.current_wave_decrypted[self.ptr_sample]
+                self.decrypted_data.append(sample)
+                self.ptr_sample += 1
+            else:
+                self.ptr_wave += 1
+                self.ptr_sample = 0
+            
+            # Mise à jour graphique
+            self.curve_decrypted.setData(list(self.decrypted_data))
+            self.curve_peaks.setData(self.peaks_x, self.peaks_y)
+            self.curve_filtered.setData(self.filtered_data)
 
-    # ------------------ANCIEN CODE AVEC LE FPGA ------------------------
-    # ----The provided bitstream does not accept lowercase letters.
-    # ----All characters must be represented in hexadecimal (e.g., 'B' = 0x42).
+            # Afficher NUM_ECGS_DISPLAYED ECGs
+            wave_length = len(self.current_wave_decrypted)
+            start = max(0, len(self.decrypted_data) - NUM_ECGS_DISPLAYED * wave_length)
+            end = len(self.decrypted_data)
+            self.plot_widget.setXRange(start, end)
 
-    fpga = FPGA(port, baudrate)
+    def detect_peaks_and_bpm(self):
+        MIN_LENGTH = 3000  # Minimum pour éviter les erreurs avec le filtre
+        if len(self.decrypted_data) < MIN_LENGTH:
+            self.setWindowTitle('Waveform Plotter - BPM: --')
+            return
+
+        ecg_signal = np.array(self.decrypted_data)[-NUM_ECGS_FOR_BPM * 2000:]  # Plus de données pour BPM
+        try:
+            # Application du filtre ECG spécifique de NeuroKit2
+            filtered_ecg = nk.ecg_clean(ecg_signal, sampling_rate=1000, method="neurokit")
+            self.filtered_data = filtered_ecg.tolist()
+            
+            _, rpeaks = nk.ecg_peaks(filtered_ecg, sampling_rate=1000)
+            peaks = rpeaks['ECG_R_Peaks']
+
+            if len(peaks) < 2:
+                self.setWindowTitle('Waveform Plotter - BPM: --')
+                return
+
+            offset = len(self.decrypted_data) - len(filtered_ecg)
+            self.peaks_x = (peaks + offset).tolist()
+            self.peaks_y = filtered_ecg[peaks].tolist()
+
+            bpm = nk.ecg_rate(peaks, sampling_rate=1000)
+            avg_bpm = np.mean(bpm)
+            if np.isnan(avg_bpm):
+                self.setWindowTitle('Waveform Plotter - BPM: --')
+                return
+
+            self.setWindowTitle(f'Waveform Plotter - BPM: {int(avg_bpm)}')
+
+        except Exception as e:
+            print(f"Peak detection error: {e}")
+
+if __name__ == '__main__':
+    print("Starting application...")
+
+    fpga = FPGA('COM5', 115200)
     fpga.open_instrument()
-
     fpga.send_key(KEY)
     fpga.send_nonce(NONCE)
     fpga.send_associated_data(DA)
-    fpga.send_waveform(plaintext_a_la_main)
-    fpga.start_encryption()
-    cipher = fpga.get_cipher()
-    tag = fpga.get_tag()
-    fpga.close_instrument()
 
+    print("FPGA initialized.")
+    waves = fpga.read_csv_file("waveform_example_ecg.csv")
+    print("Waves loaded.")
 
-    # AVEC FPGA_UART
-    # fpga.serial_conn.write(KEY)
-    # fpga.serial_conn.read(4)
-    # fpga.serial_conn.write(NONCE)
-    # fpga.serial_conn.read(4)
-    # fpga.serial_conn.write(DA)
-    # fpga.serial_conn.read(4)
-    # fpga.serial_conn.write(plaintext)
-    # fpga.serial_conn.read(4)
-
-    # fpga.serial_conn.write(GO)
-    # fpga.serial_conn.write(CIPHER)
-    # tag = fpga.serial_conn.read(16)
-    # print(tag)
-    # fpga.serial_conn.write(TAG)
-    # cyphertext = fpga.serial_conn.read(181)
-    # print(cyphertext)
-
-
-
-
-
-
-    # ser = serial.Serial(port, 115200, timeout=1)    
-
-    # # On envvoie les données de chiffrement, et on lit les 'ok' du fpga
-    # print("Sending Data to FPGA ...")
-    # ser.write(key)
-    # print("Key : ", ser.read(3))
-    # ser.write(nonce)
-    # print("Nonce : " , ser.read(3))
-    # ser.write(a_data)
-    # print("Ass. Data : " , ser.read(3))
-    # ser.write(plaintext_a_la_main)
-    # print("Plaintext : " , ser.read(3))
-    # print("Sending commands to crypt with ASCON ...")
-
-    # ser.write(Go)
-    # print("Go : ", ser.read(3))
-    # sleep(1)
-
-    # ser.write(D)
-    # tag = ser.read(16)
-    # tag_hex = tag.hex()
-    # print(tag_hex)
-    # print(ser.read(3))
-
-    # ser.write(U)
-    # cyphertext = ser.read(181+3)
-    # cyphertext_hex = cyphertext.hex()
-    # print(cyphertext_hex)
-    # print(ser.read(3))
-
-    
-    # ser.close()
+    app = QApplication(sys.argv)
+    print("QApplication created.")
+    mainWin = PlotWindow(waves)
+    print("PlotWindow created.")
+    mainWin.show()
+    print("PlotWindow shown.")
+    sys.exit(app.exec_())

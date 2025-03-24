@@ -133,7 +133,7 @@ if __name__ == '__main__':
     print("Starting application...")
     fpga = FPGA('COM5', 115200)
     print("FPGA initialized.")
-    waves = fpga.read_csv_file("./PC/waveform_example_ecg.csv")
+    waves = fpga.read_csv_file("waveform_example_ecg.csv")
     print("Waves loaded.")
 
     app = QApplication(sys.argv)

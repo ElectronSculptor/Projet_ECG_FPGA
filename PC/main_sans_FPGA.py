@@ -109,7 +109,7 @@ class PlotWindow(QMainWindow):
             
             _, rpeaks = nk.ecg_peaks(filtered_ecg, sampling_rate=1000)
             peaks = rpeaks['ECG_R_Peaks']
-
+            # lkjhlkjhl
             if len(peaks) < 2:
                 self.setWindowTitle('Waveform Plotter - BPM: --')
                 return

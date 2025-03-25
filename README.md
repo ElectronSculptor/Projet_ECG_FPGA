@@ -76,3 +76,9 @@ Afin de mettre en place ce système, les étapes suivantes doivent être suivies
 1. Téléchargez le bitstream pour le FPGA dans le répertoire "*FPGA_ASCON128*" et programmez le FPGA avec en utilisant le logiciel *Vivado*.
 2. Branchez un **module UART** sur la partie haute du PMOD A de la carte *pynqZ2* puis connectez avec un câble micro USB la carte et l'ordinateur. Il faut toujours conserver la carte alimentée pour ne pas supprimer sa programmation.
 3. Executez le programme "*main.py*" du répertoire "*PC_UI*" pour avoir l'interface utilisateur. En cas de bon fonctionnement vous devriez avoir les ECG s'affichant dynamiquement sur l'interface avec également des informations d'analyses sur chaque.
+
+
+
+
+
+Ce Readme a ete rédigé par Antoine Chassaigne (Disperseur)
